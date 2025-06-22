@@ -23,6 +23,25 @@ const client = new Client()
 const account = new Account(client);
 const databases = new Databases(client);
 
+// Утилиты для работы с JSON полями
+const parseJsonField = (field: any, fallback: any = {}) => {
+  if (typeof field === "string") {
+    try {
+      return JSON.parse(field);
+    } catch {
+      return fallback;
+    }
+  }
+  return field || fallback;
+};
+
+const stringifyJsonField = (field: any) => {
+  if (typeof field === "object" && field !== null) {
+    return JSON.stringify(field);
+  }
+  return field;
+};
+
 // Маппинг документов
 const mapUserDocument = (doc: any): User => ({
   $id: doc.$id,
@@ -34,7 +53,7 @@ const mapUserDocument = (doc: any): User => ({
   role: doc.role as UserRole,
   isActive: doc.isActive,
   avatar: doc.avatar,
-  preferences: doc.preferences,
+  preferences: parseJsonField(doc.preferences),
 });
 
 const mapRestaurantDocument = (doc: any): Restaurant => ({
@@ -45,7 +64,14 @@ const mapRestaurantDocument = (doc: any): Restaurant => ({
   description: doc.description,
   ownerId: doc.ownerId,
   status: doc.status as RestaurantStatus,
-  address: doc.address,
+  // Парсим JSON поля обратно в объекты
+  address: parseJsonField(doc.address, {
+    street: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "",
+  }),
   phone: doc.phone,
   email: doc.email,
   website: doc.website,
@@ -55,8 +81,25 @@ const mapRestaurantDocument = (doc: any): Restaurant => ({
   reviewCount: doc.reviewCount || 0,
   images: doc.images || [],
   logo: doc.logo,
-  workingHours: doc.workingHours,
-  bookingSettings: doc.bookingSettings,
+  // Парсим JSON поля
+  workingHours: parseJsonField(doc.workingHours, {
+    monday: { isOpen: false },
+    tuesday: { isOpen: false },
+    wednesday: { isOpen: false },
+    thursday: { isOpen: false },
+    friday: { isOpen: false },
+    saturday: { isOpen: false },
+    sunday: { isOpen: false },
+  }),
+  bookingSettings: parseJsonField(doc.bookingSettings, {
+    isOnlineBookingEnabled: false,
+    maxAdvanceBookingDays: 30,
+    minAdvanceBookingHours: 2,
+    maxPartySize: 12,
+    requirePhoneConfirmation: false,
+    autoConfirmBookings: false,
+    cancellationPolicy: "",
+  }),
   amenities: doc.amenities || [],
   averageRating: doc.averageRating || 0,
   totalReviews: doc.totalReviews || 0,
@@ -151,6 +194,8 @@ export const createUserDocument = async (
       userId,
       {
         ...userData,
+        // Сериализуем preferences если это объект
+        preferences: stringifyJsonField(userData.preferences),
         createdAt: userData.$createdAt || new Date().toISOString(),
       }
     );
@@ -188,11 +233,20 @@ export const updateUserDocument = async (
 ): Promise<User | null> => {
   try {
     const { $id, $createdAt, $updatedAt, ...updateData } = updates;
+
+    // Сериализуем JSON поля
+    const serializedData = {
+      ...updateData,
+      ...(updateData.preferences && {
+        preferences: stringifyJsonField(updateData.preferences),
+      }),
+    };
+
     const response = await databases.updateDocument(
       appwriteConfig.databaseId,
       appwriteConfig.collections.users,
       userId,
-      updateData
+      serializedData
     );
     return mapUserDocument(response);
   } catch (error: any) {
@@ -224,20 +278,26 @@ export const createRestaurant = async (
   ownerId: string
 ) => {
   try {
+    // Сериализуем объектные поля в JSON строки
+    const serializedData = {
+      ...restaurantData,
+      address: stringifyJsonField(restaurantData.address),
+      workingHours: stringifyJsonField(restaurantData.workingHours),
+      bookingSettings: stringifyJsonField(restaurantData.bookingSettings),
+      ownerId,
+      status: RestaurantStatus.PENDING,
+      rating: 0,
+      reviewCount: 0,
+      averageRating: 0,
+      totalReviews: 0,
+      createdAt: new Date().toISOString(),
+    };
+
     const response = await databases.createDocument(
       appwriteConfig.databaseId,
       appwriteConfig.collections.restaurants,
       ID.unique(),
-      {
-        ...restaurantData,
-        ownerId,
-        status: RestaurantStatus.PENDING,
-        rating: 0,
-        reviewCount: 0,
-        averageRating: 0,
-        totalReviews: 0,
-        createdAt: new Date().toISOString(),
-      }
+      serializedData
     );
     return mapRestaurantDocument(response);
   } catch (error: any) {
@@ -287,11 +347,26 @@ export const updateRestaurant = async (
 ): Promise<Restaurant | null> => {
   try {
     const { $id, $createdAt, $updatedAt, ...updateData } = updates;
+
+    // Сериализуем JSON поля если они присутствуют в обновлениях
+    const serializedData = {
+      ...updateData,
+      ...(updateData.address && {
+        address: stringifyJsonField(updateData.address),
+      }),
+      ...(updateData.workingHours && {
+        workingHours: stringifyJsonField(updateData.workingHours),
+      }),
+      ...(updateData.bookingSettings && {
+        bookingSettings: stringifyJsonField(updateData.bookingSettings),
+      }),
+    };
+
     const response = await databases.updateDocument(
       appwriteConfig.databaseId,
       appwriteConfig.collections.restaurants,
       restaurantId,
-      updateData
+      serializedData
     );
     return mapRestaurantDocument(response);
   } catch (error: any) {

@@ -74,16 +74,6 @@ export default function Layout({
             label: "Бронирования",
             icon: Calendar,
           },
-          {
-            href: "/restaurant-owner/analytics",
-            label: "Аналитика",
-            icon: BarChart3,
-          },
-          {
-            href: "/restaurant-owner/settings",
-            label: "Настройки",
-            icon: Settings,
-          },
         ];
 
       case UserRole.CUSTOMER:

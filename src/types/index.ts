@@ -248,7 +248,7 @@ export interface CreateRestaurantDto {
   address: Address;
   phone: string;
   email: string;
-  website?: string;
+  website: string;
   cuisineType: CuisineType[];
   priceRange: PriceRange;
   images: string[];

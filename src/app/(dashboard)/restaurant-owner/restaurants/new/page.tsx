@@ -202,6 +202,7 @@ export default function NewRestaurantPage() {
       formData.address.city.trim() &&
       formData.phone.trim() &&
       formData.email.trim() &&
+      formData.website.trim() &&
       formData.cuisineType.length > 0
     );
   };
@@ -364,7 +365,7 @@ export default function NewRestaurantPage() {
                     type="tel"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    placeholder="+7 (999) 123-45-67"
+                    placeholder="+996 123123123"
                     icon={Phone}
                     required
                   />
@@ -388,6 +389,7 @@ export default function NewRestaurantPage() {
                     onChange={handleInputChange}
                     placeholder="https://restaurant.ru"
                     icon={Globe}
+                    required
                   />
                 </div>
               </CardContent>
