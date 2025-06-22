@@ -1,10 +1,5 @@
-body {
-  background-color: red !important;
-}
-
 @import "tailwindcss";
-/* @import "react-toastify/dist/ReactToastify.css"; */
-/* @import "react-datepicker/dist/react-datepicker.css"; */
+@import "react-datepicker/dist/react-datepicker.css";
 
 @theme {
   --color-indigo-50: #eef2ff;
@@ -20,7 +15,6 @@ body {
   --breakpoint-b1400: 1400px;
 }
 
-/* CSS Variables */
 :root {
   --background: 0 0% 100%;
   --foreground: 240 10% 3.9%;
@@ -233,11 +227,6 @@ a {
 
 .Toastify__toast--info {
   background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
-}
-
-/* Focus styles */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary;
 }
 
 /* Card hover effects */
