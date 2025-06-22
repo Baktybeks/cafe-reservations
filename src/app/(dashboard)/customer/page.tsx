@@ -184,7 +184,7 @@ export default function CustomerPage() {
                         }`}
                       >
                         <Icon className="h-4 w-4 mr-2" />
-                        {tab.label}
+                        <div className="mr-2">{tab.label}</div>
                         {tab.badge && tab.badge > 0 && (
                           <Badge variant="info" size="sm" className="ml-2">
                             {tab.badge}
