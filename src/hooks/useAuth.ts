@@ -1,6 +1,6 @@
 // src/hooks/useAuth.ts
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/appStore";
@@ -15,9 +15,20 @@ export function useAuth() {
 
   const [error, setError] = useState<string | null>(null);
 
-  // Проверка текущей сессии при загрузке
+  // ИСПРАВЛЕНО: Используем ref для предотвращения повторных вызовов
+  const isInitialized = useRef(false);
+  const isChecking = useRef(false);
+
+  // ИСПРАВЛЕНО: Проверка текущей сессии при загрузке - только один раз
   useEffect(() => {
     const checkCurrentUser = async () => {
+      // Предотвращаем повторные вызовы
+      if (isInitialized.current || isChecking.current) {
+        return;
+      }
+
+      isChecking.current = true;
+
       try {
         setLoading(true);
         const currentUser = await appwriteService.getCurrentUser();
@@ -38,11 +49,13 @@ export function useAuth() {
         clearAuth();
       } finally {
         setLoading(false);
+        isInitialized.current = true;
+        isChecking.current = false;
       }
     };
 
     checkCurrentUser();
-  }, [setUser, setLoading, clearAuth]);
+  }, []); // ИСПРАВЛЕНО: Убираем зависимости
 
   // Функция входа
   const login = useCallback(
@@ -179,13 +192,17 @@ export function useAuth() {
       await appwriteService.logout();
       clearAuth();
 
+      // Сбрасываем флаги
+      isInitialized.current = false;
+      isChecking.current = false;
+
       addNotification({
         type: "success",
         title: "Выход выполнен",
         message: "Вы успешно вышли из системы",
       });
 
-      router.push("/login");
+      router.push("/");
     } catch (error: any) {
       console.error("Ошибка при выходе:", error);
       clearAuth();
@@ -305,7 +322,8 @@ export function useAuth() {
     user,
     isLoading,
     error,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !!user.$id, // ИСПРАВЛЕНО: Более точная проверка
+    isInitialized: isInitialized.current, // ДОБАВЛЕНО: Флаг инициализации
 
     // Функции
     login,

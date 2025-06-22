@@ -26,52 +26,16 @@ import { getCuisineTypeLabel, getPriceRangeLabel } from "@/types";
 export default function RestaurantBookingPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const restaurantId = params.id as string;
 
   const [bookingComplete, setBookingComplete] = useState(false);
 
-  const { data: restaurant, isLoading } = useRestaurant(restaurantId);
+  const { data: restaurant, isLoading: restaurantLoading } =
+    useRestaurant(restaurantId);
 
-  // Проверяем авторизацию
-  if (!user) {
-    return (
-      <Layout>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <Card className="max-w-md">
-            <CardContent>
-              <div className="text-center py-8">
-                <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Требуется авторизация
-                </h3>
-                <p className="text-gray-500 mb-6">
-                  Войдите в систему, чтобы забронировать столик
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button
-                    onClick={() => router.push("/login")}
-                    className="flex-1"
-                  >
-                    Войти
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => router.push("/register")}
-                    className="flex-1"
-                  >
-                    Регистрация
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (isLoading) {
+  // ИСПРАВЛЕНО: Показываем загрузку пока проверяем авторизацию или загружаем ресторан
+  if (authLoading || restaurantLoading) {
     return (
       <Layout>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -81,6 +45,7 @@ export default function RestaurantBookingPage() {
     );
   }
 
+  // ИСПРАВЛЕНО: Проверяем ресторан перед проверкой авторизации
   if (!restaurant) {
     return (
       <Layout>
@@ -97,6 +62,53 @@ export default function RestaurantBookingPage() {
                 <Button onClick={() => router.push("/restaurants")}>
                   К списку ресторанов
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  // ИСПРАВЛЕНО: Проверяем авторизацию только после загрузки данных
+  if (!isAuthenticated || !user) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <Card className="max-w-md">
+            <CardContent>
+              <div className="text-center py-8">
+                <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Требуется авторизация
+                </h3>
+                <p className="text-gray-500 mb-6">
+                  Войдите в систему, чтобы забронировать столик в ресторане "
+                  {restaurant.name}"
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    onClick={() =>
+                      router.push(
+                        `/login?redirect=/restaurants/${restaurantId}/book`
+                      )
+                    }
+                    className="flex-1"
+                  >
+                    Войти
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      router.push(
+                        `/register?redirect=/restaurants/${restaurantId}/book`
+                      )
+                    }
+                    className="flex-1"
+                  >
+                    Регистрация
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -244,15 +256,6 @@ export default function RestaurantBookingPage() {
                     </div>
 
                     <div className="flex items-center space-x-2 mb-3">
-                      <div className="flex items-center">
-                        <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
-                        <span className="text-sm font-medium">
-                          {restaurant.averageRating.toFixed(1)}
-                        </span>
-                      </div>
-                      <span className="text-sm text-gray-500">
-                        ({restaurant.totalReviews} отзывов)
-                      </span>
                       <Badge variant="secondary" size="sm">
                         {getPriceRangeLabel(restaurant.priceRange)}
                       </Badge>

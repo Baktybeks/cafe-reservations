@@ -12,8 +12,10 @@ import { RestaurantCard } from "@/components/restaurants/RestaurantCard";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useOwnerRestaurants } from "@/hooks/useRestaurants";
-import { useBookings } from "@/hooks/useBookings";
-import { useUpdateBookingStatus } from "@/hooks/useBookings";
+import {
+  useMultipleRestaurantBookings,
+  useUpdateBookingStatus,
+} from "@/hooks/useBookings";
 import {
   UtensilsCrossed,
   Calendar,
@@ -28,7 +30,12 @@ import {
   Users,
   DollarSign,
 } from "lucide-react";
-import { UserRole, BookingStatus, RestaurantStatus } from "@/types";
+import {
+  UserRole,
+  BookingStatus,
+  RestaurantStatus,
+  getBookingStatusLabel,
+} from "@/types";
 
 export default function RestaurantOwnerPage() {
   const router = useRouter();
@@ -45,9 +52,8 @@ export default function RestaurantOwnerPage() {
 
   // Получаем все бронирования для ресторанов владельца
   const restaurantIds = ownerRestaurants.map((r) => r.$id);
-  const { data: allBookings = [], isLoading: bookingsLoading } = useBookings({
-    restaurantId: restaurantIds.length > 0 ? restaurantIds[0] : undefined, // Упрощение для демо
-  });
+  const { data: allBookings = [], isLoading: bookingsLoading } =
+    useMultipleRestaurantBookings(restaurantIds);
 
   // Проверяем права доступа
   if (
@@ -105,7 +111,17 @@ export default function RestaurantOwnerPage() {
     bookingId: string,
     status: BookingStatus
   ) => {
-    await updateBookingStatus.mutateAsync({ bookingId, status });
+    try {
+      await updateBookingStatus.mutateAsync({ bookingId, status });
+    } catch (error) {
+      console.error("Ошибка обновления статуса бронирования:", error);
+    }
+  };
+
+  const formatGuestCount = (count: number): string => {
+    if (count === 1) return "1 гость";
+    if (count < 5) return `${count} гостя`;
+    return `${count} гостей`;
   };
 
   return (
@@ -386,7 +402,12 @@ export default function RestaurantOwnerPage() {
                             key={booking.$id}
                             booking={booking}
                             variant="restaurant"
-                            onStatusChange={handleBookingStatusChange}
+                            onEdit={(bookingId) =>
+                              router.push(
+                                `/restaurant-owner/bookings/${bookingId}`
+                              )
+                            }
+                            showActions={true}
                           />
                         ))}
                         {pendingBookings.length > 3 && (
@@ -435,8 +456,8 @@ export default function RestaurantOwnerPage() {
                                   {booking.customerName}
                                 </p>
                                 <p className="text-sm text-gray-600">
-                                  {booking.timeSlot} • {booking.partySize}{" "}
-                                  человек
+                                  {booking.time} •{" "}
+                                  {formatGuestCount(booking.guestCount)}
                                 </p>
                               </div>
                               <Badge
@@ -448,7 +469,7 @@ export default function RestaurantOwnerPage() {
                                     : "error"
                                 }
                               >
-                                {booking.status}
+                                {getBookingStatusLabel(booking.status)}
                               </Badge>
                             </div>
                           </div>
@@ -498,7 +519,7 @@ export default function RestaurantOwnerPage() {
                     <RestaurantCard
                       key={restaurant.$id}
                       restaurant={restaurant}
-                      showStatus
+                      showStatus={true}
                     />
                   ))}
                 </div>
@@ -552,7 +573,13 @@ export default function RestaurantOwnerPage() {
                       key={booking.$id}
                       booking={booking}
                       variant="restaurant"
-                      onStatusChange={handleBookingStatusChange}
+                      onEdit={(bookingId) =>
+                        router.push(`/restaurant-owner/bookings/${bookingId}`)
+                      }
+                      onView={(bookingId) =>
+                        router.push(`/restaurant-owner/bookings/${bookingId}`)
+                      }
+                      showActions={true}
                     />
                   ))}
                 </div>

@@ -1,13 +1,13 @@
-// src/types/index.ts - Типы для приложения бронирования ресторанов
+// src/types/index.ts - Оптимизированные типы для приложения бронирования ресторанов
 
-// Роли пользователей
+// ===== ENUMS =====
+
 export enum UserRole {
   ADMIN = "ADMIN",
   RESTAURANT_OWNER = "RESTAURANT_OWNER",
   CUSTOMER = "CUSTOMER",
 }
 
-// Типы кухни
 export enum CuisineType {
   ITALIAN = "ITALIAN",
   JAPANESE = "JAPANESE",
@@ -22,7 +22,6 @@ export enum CuisineType {
   OTHER = "OTHER",
 }
 
-// Ценовые категории
 export enum PriceRange {
   BUDGET = "BUDGET", // $
   MODERATE = "MODERATE", // $$
@@ -30,40 +29,76 @@ export enum PriceRange {
   LUXURY = "LUXURY", // $$$$
 }
 
-// Статусы бронирования
 export enum BookingStatus {
-  PENDING = "PENDING", // Ожидает подтверждения
-  CONFIRMED = "CONFIRMED", // Подтверждено
-  CANCELLED = "CANCELLED", // Отменено
-  COMPLETED = "COMPLETED", // Завершено
-  NO_SHOW = "NO_SHOW", // Не явился
+  PENDING = "PENDING",
+  CONFIRMED = "CONFIRMED",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+  NO_SHOW = "NO_SHOW",
 }
 
-// Статусы ресторана
 export enum RestaurantStatus {
-  PENDING = "PENDING", // Ожидает модерации
-  APPROVED = "APPROVED", // Одобрен
-  REJECTED = "REJECTED", // Отклонен
-  SUSPENDED = "SUSPENDED", // Заблокирован
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+  SUSPENDED = "SUSPENDED",
 }
 
-// Типы столиков
 export enum TableType {
-  INDOOR = "INDOOR", // В помещении
-  OUTDOOR = "OUTDOOR", // На улице
-  PRIVATE = "PRIVATE", // Приватная зона
-  BAR = "BAR", // Барная стойка
-  VIP = "VIP", // VIP зона
+  INDOOR = "INDOOR",
+  OUTDOOR = "OUTDOOR",
+  PRIVATE = "PRIVATE",
+  BAR = "BAR",
+  VIP = "VIP",
 }
 
-// Базовый интерфейс для документов Appwrite
+// ===== BASE INTERFACES =====
+
 export interface BaseDocument {
   $id: string;
   $createdAt: string;
   $updatedAt: string;
 }
 
-// Пользователь
+export interface Address {
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+export interface DayHours {
+  isOpen: boolean;
+  openTime?: string; // "09:00"
+  closeTime?: string; // "22:00"
+  breakStart?: string; // "14:00"
+  breakEnd?: string; // "17:00"
+}
+
+export interface WorkingHours {
+  monday: DayHours;
+  tuesday: DayHours;
+  wednesday: DayHours;
+  thursday: DayHours;
+  friday: DayHours;
+  saturday: DayHours;
+  sunday: DayHours;
+}
+
+// ===== USER TYPES =====
+
+export interface UserPreferences {
+  favoriteRestaurants: string[];
+  dietaryRestrictions: string[];
+  preferredCuisines: CuisineType[];
+  notificationsEnabled: boolean;
+}
+
 export interface User extends BaseDocument {
   name: string;
   email: string;
@@ -74,22 +109,26 @@ export interface User extends BaseDocument {
   preferences?: UserPreferences;
 }
 
-// Предпочтения пользователя
-export interface UserPreferences {
-  favoriteRestaurants: string[];
-  dietaryRestrictions: string[];
-  preferredCuisines: CuisineType[];
-  notificationsEnabled: boolean;
+// ===== RESTAURANT TYPES =====
+
+export interface BookingSettings {
+  isOnlineBookingEnabled: boolean;
+  maxAdvanceBookingDays: number;
+  minAdvanceBookingHours: number;
+  maxPartySize: number;
+  requirePhoneConfirmation: boolean;
+  autoConfirmBookings: boolean;
+  cancellationPolicy: string;
 }
 
-// Ресторан
 export interface Restaurant extends BaseDocument {
   name: string;
+  slug: string;
   description: string;
   ownerId: string;
   status: RestaurantStatus;
 
-  // Основная информация
+  // Контактная информация
   address: Address;
   phone: string;
   email: string;
@@ -105,88 +144,58 @@ export interface Restaurant extends BaseDocument {
   images: string[];
   logo?: string;
 
-  // Время работы
+  // Операционные настройки
   workingHours: WorkingHours;
-
-  // Настройки бронирования
   bookingSettings: BookingSettings;
-
-  // Дополнительные удобства
+  capacity: number;
   amenities: string[];
 
-  // Рейтинг и отзывы
-  averageRating: number;
-  totalReviews: number;
+  // Модерация
+  isActive: boolean;
   moderationNote?: string;
 }
 
-// Адрес
-export interface Address {
-  street: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  coordinates?: {
-    latitude: number;
-    longitude: number;
-  };
-}
+// ===== TABLE TYPES =====
 
-// Время работы
-export interface WorkingHours {
-  monday: DayHours;
-  tuesday: DayHours;
-  wednesday: DayHours;
-  thursday: DayHours;
-  friday: DayHours;
-  saturday: DayHours;
-  sunday: DayHours;
-}
-
-export interface DayHours {
-  isOpen: boolean;
-  openTime?: string; // "09:00"
-  closeTime?: string; // "22:00"
-  breakStart?: string; // "14:00"
-  breakEnd?: string; // "17:00"
-}
-
-// Настройки бронирования
-export interface BookingSettings {
-  isOnlineBookingEnabled: boolean;
-  maxAdvanceBookingDays: number; // Максимум дней для бронирования заранее
-  minAdvanceBookingHours: number; // Минимум часов для бронирования заранее
-  maxPartySize: number;
-  requirePhoneConfirmation: boolean;
-  autoConfirmBookings: boolean;
-  cancellationPolicy: string;
-}
-
-// Столик
 export interface Table extends BaseDocument {
   restaurantId: string;
-  tableNumber: string;
+  number: string;
   capacity: number;
   type: TableType;
+  location?: string;
+  amenities?: string[];
   isActive: boolean;
-  location?: string; // Описание расположения ("У окна", "Зал А")
-  amenities?: string[]; // ["Детский стульчик", "Розетка"]
 }
 
-// Бронирование
+export interface TimeSlot {
+  time: string;
+  available: boolean;
+  capacity: number;
+  bookedCount: number;
+  price?: number;
+}
+
+export interface TableAvailability {
+  date: string;
+  timeSlots: TimeSlot[];
+  totalTables: number;
+  availableTables: number;
+  restaurant: Pick<Restaurant, "$id" | "name" | "capacity">;
+}
+
+// ===== BOOKING TYPES =====
+
 export interface Booking extends BaseDocument {
+  // Связи
   restaurantId: string;
   customerId: string;
-  tableId: string;
+  tableId?: string;
 
   // Детали бронирования
   date: string; // "2024-12-25"
-  timeSlot: string; // "19:00"
+  time: string; // "19:00"
   duration: number; // Продолжительность в минутах
-  partySize: number;
-
-  // Статус
+  guestCount: number;
   status: BookingStatus;
 
   // Контактная информация
@@ -196,31 +205,37 @@ export interface Booking extends BaseDocument {
 
   // Дополнительная информация
   specialRequests?: string;
-  notes?: string; // Заметки ресторана
+  notes?: string;
+  totalAmount?: number;
 
-  // Подтверждение
+  // Системная информация
   confirmationCode: string;
   confirmedAt?: string;
   cancelledAt?: string;
   cancelReason?: string;
+
+  // Денормализованные данные для удобства
+  restaurantName?: string;
 }
 
-// Отзыв
+// ===== REVIEW TYPES =====
+
 export interface Review extends BaseDocument {
   restaurantId: string;
   customerId: string;
   bookingId?: string;
 
+  // Рейтинги
   rating: number; // 1-5
-  title?: string;
-  comment: string;
-  images?: string[];
-
-  // Рейтинги по категориям
   foodRating?: number;
   serviceRating?: number;
   ambianceRating?: number;
   valueRating?: number;
+
+  // Контент
+  title?: string;
+  comment: string;
+  images?: string[];
 
   // Модерация
   isApproved: boolean;
@@ -228,28 +243,15 @@ export interface Review extends BaseDocument {
   moderatedAt?: string;
 }
 
-// Временной слот
-export interface TimeSlot {
-  time: string; // "19:00"
-  availableTables: number;
-  totalTables: number;
-  isAvailable: boolean;
-}
+// ===== DTO TYPES =====
 
-// Доступность столиков
-export interface TableAvailability {
-  date: string;
-  timeSlots: TimeSlot[];
-}
-
-// DTO для создания ресторана
 export interface CreateRestaurantDto {
   name: string;
   description: string;
   address: Address;
   phone: string;
   email: string;
-  website: string;
+  website?: string;
   cuisineType: CuisineType[];
   priceRange: PriceRange;
   images: string[];
@@ -258,46 +260,69 @@ export interface CreateRestaurantDto {
   amenities: string[];
 }
 
-// DTO для создания бронирования
 export interface CreateBookingDto {
   restaurantId: string;
-  tableId: string;
+  tableId?: string;
   date: string;
-  timeSlot: string;
-  partySize: number;
+  time: string;
+  guestCount: number;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
   specialRequests?: string;
+  reservationToken?: string;
 }
 
-// Фильтры для поиска ресторанов
+export interface BookingUpdate {
+  status?: BookingStatus;
+  tableId?: string;
+  notes?: string;
+  cancelReason?: string;
+}
+
+// ===== FILTER TYPES =====
+
 export interface RestaurantFilters {
   city?: string;
   cuisineType?: CuisineType[];
   priceRange?: PriceRange[];
-  rating?: number; // Минимальный рейтинг
+  rating?: number;
   isOpenNow?: boolean;
   hasAvailableTables?: boolean;
   date?: string;
   time?: string;
-  partySize?: number;
+  guestCount?: number;
   amenities?: string[];
   searchQuery?: string;
   showAll?: boolean;
 }
 
-// Фильтры для бронирований
 export interface BookingFilters {
   restaurantId?: string;
   customerId?: string;
-  status?: BookingStatus[];
+  status?: BookingStatus | BookingStatus[] | "all";
   dateFrom?: string;
   dateTo?: string;
   searchQuery?: string;
 }
 
-// Статистика для ресторана
+export interface AvailabilityQuery {
+  restaurantId: string;
+  date: string;
+  guestCount?: number;
+  timeFrom?: string;
+  timeTo?: string;
+}
+
+// ===== STATISTICS TYPES =====
+
+export interface BookingStats {
+  total: number;
+  upcoming: number;
+  past: number;
+  cancelled: number;
+}
+
 export interface RestaurantStats {
   totalBookings: number;
   completedBookings: number;
@@ -310,7 +335,6 @@ export interface RestaurantStats {
   revenueEstimate?: number;
 }
 
-// Общая статистика платформы
 export interface PlatformStats {
   totalUsers: number;
   totalRestaurants: number;
@@ -319,7 +343,7 @@ export interface PlatformStats {
   pendingRestaurants: number;
   totalReviews: number;
   averagePlatformRating: number;
-  bookingsByStatus: { [status in BookingStatus]: number };
+  bookingsByStatus: Record<BookingStatus, number>;
   topCuisines: { cuisine: CuisineType; count: number }[];
   monthlyGrowth: {
     users: number;
@@ -328,7 +352,16 @@ export interface PlatformStats {
   };
 }
 
-// Настройки уведомлений
+// ===== NOTIFICATION TYPES =====
+
+export interface BookingNotification extends BaseDocument {
+  bookingId: string;
+  userId: string;
+  type: "confirmation" | "reminder" | "cancellation" | "update";
+  message: string;
+  isRead: boolean;
+}
+
 export interface NotificationSettings {
   emailNotifications: boolean;
   smsNotifications: boolean;
@@ -338,7 +371,8 @@ export interface NotificationSettings {
   reviewRequests: boolean;
 }
 
-// Ответы API
+// ===== API RESPONSE TYPES =====
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -353,7 +387,18 @@ export interface PaginatedResponse<T> {
   limit: number;
 }
 
-// Утилитарные функции для лейблов
+// ===== EXTENDED TYPES =====
+
+export type BookingWithRestaurant = Booking & {
+  restaurant: Pick<Restaurant, "name" | "phone" | "address" | "images">;
+};
+
+export type RestaurantWithStats = Restaurant & {
+  stats: RestaurantStats;
+};
+
+// ===== UTILITY FUNCTIONS =====
+
 export const getCuisineTypeLabel = (cuisine: CuisineType): string => {
   const labels: Record<CuisineType, string> = {
     [CuisineType.ITALIAN]: "Итальянская",
@@ -385,11 +430,22 @@ export const getBookingStatusLabel = (status: BookingStatus): string => {
   const labels: Record<BookingStatus, string> = {
     [BookingStatus.PENDING]: "Ожидает подтверждения",
     [BookingStatus.CONFIRMED]: "Подтверждено",
-    [BookingStatus.CANCELLED]: "Отменено",
     [BookingStatus.COMPLETED]: "Завершено",
+    [BookingStatus.CANCELLED]: "Отменено",
     [BookingStatus.NO_SHOW]: "Не явился",
   };
   return labels[status];
+};
+
+export const getBookingStatusColor = (status: BookingStatus): string => {
+  const colors: Record<BookingStatus, string> = {
+    [BookingStatus.PENDING]: "orange",
+    [BookingStatus.CONFIRMED]: "blue",
+    [BookingStatus.COMPLETED]: "green",
+    [BookingStatus.CANCELLED]: "red",
+    [BookingStatus.NO_SHOW]: "red",
+  };
+  return colors[status];
 };
 
 export const getRestaurantStatusLabel = (status: RestaurantStatus): string => {
@@ -411,4 +467,51 @@ export const getTableTypeLabel = (type: TableType): string => {
     [TableType.VIP]: "VIP зона",
   };
   return labels[type];
+};
+
+export const formatPrice = (amount: number, currency = "RUB"): string => {
+  return new Intl.NumberFormat("ru-RU", {
+    style: "currency",
+    currency,
+  }).format(amount);
+};
+
+export const isBookingEditable = (booking: Booking): boolean => {
+  const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
+  const now = new Date();
+  const hoursUntilBooking =
+    (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+  return (
+    hoursUntilBooking > 2 &&
+    [BookingStatus.PENDING, BookingStatus.CONFIRMED].includes(booking.status)
+  );
+};
+
+export const isBookingCancellable = (booking: Booking): boolean => {
+  const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
+  const now = new Date();
+  const hoursUntilBooking =
+    (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+  return (
+    hoursUntilBooking > 1 &&
+    [BookingStatus.PENDING, BookingStatus.CONFIRMED].includes(booking.status)
+  );
+};
+
+export const generateConfirmationCode = (): string => {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+};
+
+export const formatDate = (dateString: string): string => {
+  return new Date(dateString).toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+export const formatTime = (timeString: string): string => {
+  return timeString.substring(0, 5); // "19:00:00" -> "19:00"
 };

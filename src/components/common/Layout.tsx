@@ -6,6 +6,7 @@ import React, { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useSyncAuthCookie } from "@/hooks/useSyncAuthCookie"; // ДОБАВЛЕНО
 import { Button } from "@/components/ui/Button";
 import { useUIStore } from "@/store/appStore";
 import {
@@ -39,6 +40,9 @@ export default function Layout({
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
   const { sidebarOpen, setSidebarOpen } = useUIStore();
+
+  // ДОБАВЛЕНО: Синхронизация cookie авторизации
+  useSyncAuthCookie();
 
   // Навигационные ссылки в зависимости от роли
   const getNavigationLinks = () => {

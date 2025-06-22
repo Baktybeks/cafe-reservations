@@ -1,333 +1,314 @@
-// src/hooks/useRestaurants.ts
+// hooks/useRestaurants.ts - Хуки для работы с ресторанами
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Query } from "appwrite";
-import { appwriteService } from "@/services/appwriteService";
-import { useNotificationStore } from "@/store/appStore";
 import {
   Restaurant,
   RestaurantFilters,
   CreateRestaurantDto,
   RestaurantStatus,
-  CuisineType,
-  PriceRange,
+  RestaurantStats,
 } from "@/types";
 
-// Query keys
-export const restaurantKeys = {
-  all: ["restaurants"] as const,
-  lists: () => [...restaurantKeys.all, "list"] as const,
-  list: (filters?: RestaurantFilters) =>
-    [...restaurantKeys.lists(), filters] as const,
-  details: () => [...restaurantKeys.all, "detail"] as const,
-  detail: (id: string) => [...restaurantKeys.details(), id] as const,
-  stats: (id: string) => [...restaurantKeys.all, "stats", id] as const,
-  tables: (id: string) => [...restaurantKeys.all, "tables", id] as const,
-  reviews: (id: string) => [...restaurantKeys.all, "reviews", id] as const,
-};
-
-// Хук для получения списка ресторанов с фильтрацией
-export function useRestaurants(filters?: RestaurantFilters) {
-  return useQuery({
-    queryKey: restaurantKeys.list(filters),
-    queryFn: async () => {
-      const queries: string[] = [Query.orderDesc("$createdAt")];
-
-      // Применяем фильтры
-      if (filters?.cuisineType?.length) {
-        queries.push(Query.equal("cuisineType", filters.cuisineType));
+export function useAllRestaurants() {
+  return useQuery<Restaurant[], Error>({
+    queryKey: ["restaurants", "all"],
+    queryFn: async (): Promise<Restaurant[]> => {
+      const response = await fetch("/api/restaurants/all");
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки всех ресторанов");
       }
-
-      if (filters?.priceRange?.length) {
-        queries.push(Query.equal("priceRange", filters.priceRange));
-      }
-
-      if (filters?.city) {
-        queries.push(Query.equal("address.city", filters.city));
-      }
-
-      if (filters?.rating) {
-        queries.push(Query.greaterThanEqual("averageRating", filters.rating));
-      }
-
-      // ИСПРАВЛЕНО: Показываем только одобренные рестораны, если не указано showAll
-      // Это позволит админам видеть все рестораны, включая на модерации
-      if (!filters?.showAll) {
-        queries.push(Query.equal("status", RestaurantStatus.APPROVED));
-      }
-
-      const restaurants = await appwriteService.getRestaurants(queries);
-
-      // Дополнительная фильтрация на клиенте
-      let filteredRestaurants = restaurants;
-
-      if (filters?.searchQuery) {
-        const searchLower = filters.searchQuery.toLowerCase();
-        filteredRestaurants = restaurants.filter(
-          (restaurant) =>
-            restaurant.name.toLowerCase().includes(searchLower) ||
-            restaurant.description.toLowerCase().includes(searchLower) ||
-            restaurant.address.city.toLowerCase().includes(searchLower) ||
-            restaurant.cuisineType.some((cuisine) =>
-              cuisine.toLowerCase().includes(searchLower)
-            )
-        );
-      }
-
-      if (filters?.amenities?.length) {
-        filteredRestaurants = filteredRestaurants.filter((restaurant) =>
-          filters.amenities!.every((amenity) =>
-            restaurant.amenities.includes(amenity)
-          )
-        );
-      }
-
-      return filteredRestaurants;
+      return response.json();
     },
-    staleTime: 1000 * 60 * 5, // 5 минут
   });
 }
 
-// Хук для получения конкретного ресторана
-export function useRestaurant(id: string) {
-  return useQuery({
-    queryKey: restaurantKeys.detail(id),
-    queryFn: () => appwriteService.getRestaurantById(id),
-    enabled: !!id,
-    staleTime: 1000 * 60 * 2, // 2 минуты
+// Хук для получения списка ресторанов с фильтрами
+export function useRestaurants(filters?: RestaurantFilters) {
+  return useQuery<Restaurant[], Error>({
+    queryKey: ["restaurants", filters],
+    queryFn: async (): Promise<Restaurant[]> => {
+      const params = new URLSearchParams();
+
+      if (filters?.city) params.append("city", filters.city);
+      if (filters?.cuisineType?.length) {
+        filters.cuisineType.forEach((cuisine) =>
+          params.append("cuisine", cuisine)
+        );
+      }
+      if (filters?.priceRange?.length) {
+        filters.priceRange.forEach((range) =>
+          params.append("priceRange", range)
+        );
+      }
+      if (filters?.rating)
+        params.append("minRating", filters.rating.toString());
+      if (filters?.searchQuery) params.append("search", filters.searchQuery);
+      if (filters?.isOpenNow) params.append("isOpenNow", "true");
+      if (filters?.hasAvailableTables)
+        params.append("hasAvailableTables", "true");
+      if (filters?.date) params.append("date", filters.date);
+      if (filters?.time) params.append("time", filters.time);
+      if (filters?.guestCount)
+        params.append("guestCount", filters.guestCount.toString());
+      if (filters?.amenities?.length) {
+        filters.amenities.forEach((amenity) =>
+          params.append("amenities", amenity)
+        );
+      }
+
+      const response = await fetch(`/api/restaurants?${params}`);
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки списка ресторанов");
+      }
+      return response.json();
+    },
   });
 }
 
-// Хук для получения ресторанов владельца
-export function useOwnerRestaurants(ownerId: string) {
-  return useQuery({
-    queryKey: [...restaurantKeys.lists(), { ownerId }],
-    queryFn: () =>
-      appwriteService.getRestaurants([
-        Query.equal("ownerId", ownerId),
-        Query.orderDesc("$createdAt"),
-      ]),
-    enabled: !!ownerId,
-    staleTime: 1000 * 60 * 2,
-  });
-}
-
-// ДОБАВЛЕН: Хук специально для админов - показывает все рестораны
-export function useAllRestaurants(
-  filters?: Omit<RestaurantFilters, "showAll">
-) {
-  return useRestaurants({ ...filters, showAll: true });
-}
-
-// Хук для получения статистики ресторана
-export function useRestaurantStats(restaurantId: string) {
-  return useQuery({
-    queryKey: restaurantKeys.stats(restaurantId),
-    queryFn: () => appwriteService.getRestaurantStats(restaurantId),
+// Хук для получения информации о ресторане
+export function useRestaurant(restaurantId: string) {
+  return useQuery<Restaurant, Error>({
+    queryKey: ["restaurant", restaurantId],
+    queryFn: async (): Promise<Restaurant> => {
+      const response = await fetch(`/api/restaurants/${restaurantId}`);
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки информации о ресторане");
+      }
+      return response.json();
+    },
     enabled: !!restaurantId,
     staleTime: 1000 * 60 * 10, // 10 минут
   });
 }
 
-// Хук для получения столиков ресторана
-export function useRestaurantTables(restaurantId: string) {
-  return useQuery({
-    queryKey: restaurantKeys.tables(restaurantId),
-    queryFn: () => appwriteService.getRestaurantTables(restaurantId),
-    enabled: !!restaurantId,
-    staleTime: 1000 * 60 * 5,
-  });
-}
-
-// Хук для получения отзывов ресторана
-export function useRestaurantReviews(restaurantId: string) {
-  return useQuery({
-    queryKey: restaurantKeys.reviews(restaurantId),
-    queryFn: () => appwriteService.getRestaurantReviews(restaurantId),
-    enabled: !!restaurantId,
-    staleTime: 1000 * 60 * 5,
+// Хук для получения ресторанов владельца
+export function useOwnerRestaurants(ownerId: string) {
+  return useQuery<Restaurant[], Error>({
+    queryKey: ["restaurants", "owner", ownerId],
+    queryFn: async (): Promise<Restaurant[]> => {
+      const response = await fetch(`/api/restaurants/owner/${ownerId}`);
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки ресторанов владельца");
+      }
+      return response.json();
+    },
+    enabled: !!ownerId,
   });
 }
 
 // Хук для создания ресторана
 export function useCreateRestaurant() {
   const queryClient = useQueryClient();
-  const { addNotification } = useNotificationStore();
 
-  return useMutation({
-    mutationFn: ({
-      data,
-      ownerId,
-    }: {
-      data: CreateRestaurantDto;
-      ownerId: string;
-    }) => appwriteService.createRestaurant(data, ownerId),
-    onSuccess: (restaurant) => {
-      queryClient.invalidateQueries({ queryKey: restaurantKeys.lists() });
-
-      addNotification({
-        type: "success",
-        title: "Ресторан создан",
-        message: `Ресторан "${restaurant.name}" отправлен на модерацию`,
+  return useMutation<Restaurant, Error, CreateRestaurantDto>({
+    mutationFn: async (restaurantData): Promise<Restaurant> => {
+      const response = await fetch("/api/restaurants", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(restaurantData),
       });
+
+      if (!response.ok) {
+        throw new Error("Ошибка создания ресторана");
+      }
+
+      return response.json();
     },
-    onError: (error: any) => {
-      addNotification({
-        type: "error",
-        title: "Ошибка создания",
-        message: error.message || "Не удалось создать ресторан",
+    onSuccess: (newRestaurant) => {
+      // Обновляем кэш после создания
+      queryClient.invalidateQueries({ queryKey: ["restaurants"] });
+      queryClient.invalidateQueries({
+        queryKey: ["restaurants", "owner", newRestaurant.ownerId],
       });
     },
   });
 }
 
 // Хук для обновления ресторана
+interface UpdateRestaurantData {
+  restaurantId: string;
+  data: Partial<Restaurant>;
+}
+
 export function useUpdateRestaurant() {
   const queryClient = useQueryClient();
-  const { addNotification } = useNotificationStore();
 
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Restaurant> }) =>
-      appwriteService.updateRestaurant(id, data),
-    onSuccess: (restaurant) => {
-      if (restaurant) {
-        queryClient.setQueryData(
-          restaurantKeys.detail(restaurant.$id),
-          restaurant
-        );
-        queryClient.invalidateQueries({ queryKey: restaurantKeys.lists() });
-
-        addNotification({
-          type: "success",
-          title: "Ресторан обновлен",
-          message: "Информация о ресторане успешно обновлена",
-        });
-      }
-    },
-    onError: (error: any) => {
-      addNotification({
-        type: "error",
-        title: "Ошибка обновления",
-        message: error.message || "Не удалось обновить ресторан",
+  return useMutation<Restaurant, Error, UpdateRestaurantData>({
+    mutationFn: async ({ restaurantId, data }): Promise<Restaurant> => {
+      const response = await fetch(`/api/restaurants/${restaurantId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
       });
-    },
-  });
-}
 
-// Хук для модерации ресторана (для админов)
-export function useModerateRestaurant() {
-  const queryClient = useQueryClient();
-  const { addNotification } = useNotificationStore();
-
-  return useMutation({
-    mutationFn: ({
-      id,
-      status,
-      note,
-    }: {
-      id: string;
-      status: RestaurantStatus;
-      note?: string;
-    }) =>
-      appwriteService.updateRestaurant(id, {
-        status,
-        ...(note && { moderationNote: note }),
-      }),
-    onSuccess: (restaurant, variables) => {
-      if (restaurant) {
-        queryClient.setQueryData(
-          restaurantKeys.detail(restaurant.$id),
-          restaurant
-        );
-        queryClient.invalidateQueries({ queryKey: restaurantKeys.lists() });
-
-        const statusText =
-          variables.status === RestaurantStatus.APPROVED
-            ? "одобрен"
-            : "отклонен";
-
-        addNotification({
-          type:
-            variables.status === RestaurantStatus.APPROVED
-              ? "success"
-              : "warning",
-          title: "Статус изменен",
-          message: `Ресторан "${restaurant.name}" ${statusText}`,
-        });
-      }
-    },
-    onError: (error: any) => {
-      addNotification({
-        type: "error",
-        title: "Ошибка модерации",
-        message: error.message || "Не удалось изменить статус ресторана",
-      });
-    },
-  });
-}
-
-// Хук для поиска ресторанов
-export function useSearchRestaurants(searchQuery: string) {
-  return useQuery({
-    queryKey: [...restaurantKeys.lists(), { search: searchQuery }],
-    queryFn: async () => {
-      if (!searchQuery.trim()) {
-        return [];
+      if (!response.ok) {
+        throw new Error("Ошибка обновления ресторана");
       }
 
-      // Получаем все одобренные рестораны и фильтруем на клиенте
-      const restaurants = await appwriteService.getRestaurants([
-        Query.equal("status", RestaurantStatus.APPROVED),
-        Query.orderDesc("averageRating"),
-      ]);
-
-      const searchLower = searchQuery.toLowerCase();
-      return restaurants.filter(
-        (restaurant) =>
-          restaurant.name.toLowerCase().includes(searchLower) ||
-          restaurant.description.toLowerCase().includes(searchLower) ||
-          restaurant.address.city.toLowerCase().includes(searchLower) ||
-          restaurant.cuisineType.some((cuisine) =>
-            cuisine.toLowerCase().includes(searchLower)
-          ) ||
-          restaurant.amenities.some((amenity) =>
-            amenity.toLowerCase().includes(searchLower)
-          )
+      return response.json();
+    },
+    onSuccess: (updatedRestaurant) => {
+      // Обновляем кэш
+      queryClient.setQueryData(
+        ["restaurant", updatedRestaurant.$id],
+        updatedRestaurant
       );
+      queryClient.invalidateQueries({ queryKey: ["restaurants"] });
+      queryClient.invalidateQueries({
+        queryKey: ["restaurants", "owner", updatedRestaurant.ownerId],
+      });
     },
-    enabled: !!searchQuery.trim(),
-    staleTime: 1000 * 60 * 5,
+  });
+}
+
+// Хук для обновления статуса ресторана (для админов)
+interface UpdateRestaurantStatusData {
+  restaurantId: string;
+  status: RestaurantStatus;
+  moderationNote?: string;
+}
+
+export function useUpdateRestaurantStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation<Restaurant, Error, UpdateRestaurantStatusData>({
+    mutationFn: async ({
+      restaurantId,
+      status,
+      moderationNote,
+    }): Promise<Restaurant> => {
+      const response = await fetch(`/api/restaurants/${restaurantId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status, moderationNote }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Ошибка обновления статуса ресторана");
+      }
+
+      return response.json();
+    },
+    onSuccess: (updatedRestaurant) => {
+      queryClient.setQueryData(
+        ["restaurant", updatedRestaurant.$id],
+        updatedRestaurant
+      );
+      queryClient.invalidateQueries({ queryKey: ["restaurants"] });
+    },
+  });
+}
+
+// Хук для удаления ресторана
+export function useDeleteRestaurant() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (restaurantId: string): Promise<void> => {
+      const response = await fetch(`/api/restaurants/${restaurantId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Ошибка удаления ресторана");
+      }
+    },
+    onSuccess: (_, restaurantId) => {
+      // Удаляем из кэша
+      queryClient.removeQueries({ queryKey: ["restaurant", restaurantId] });
+      queryClient.invalidateQueries({ queryKey: ["restaurants"] });
+    },
+  });
+}
+
+// Хук для получения статистики ресторана
+export function useRestaurantStats(
+  restaurantId: string,
+  period: "day" | "week" | "month" | "year" = "month"
+) {
+  return useQuery<RestaurantStats, Error>({
+    queryKey: ["restaurant-stats", restaurantId, period],
+    queryFn: async (): Promise<RestaurantStats> => {
+      const response = await fetch(
+        `/api/restaurants/${restaurantId}/stats?period=${period}`
+      );
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки статистики ресторана");
+      }
+      return response.json();
+    },
+    enabled: !!restaurantId,
+    staleTime: 1000 * 60 * 5, // 5 минут
   });
 }
 
 // Хук для получения популярных ресторанов
-export function usePopularRestaurants(limit = 10) {
-  return useQuery({
-    queryKey: [...restaurantKeys.lists(), { popular: true, limit }],
-    queryFn: async () => {
-      const restaurants = await appwriteService.getRestaurants([
-        Query.equal("status", RestaurantStatus.APPROVED),
-        Query.greaterThan("averageRating", 4.0),
-        Query.orderDesc("averageRating"),
-        Query.limit(limit),
-      ]);
-      return restaurants;
+export function usePopularRestaurants(limit: number = 10) {
+  return useQuery<Restaurant[], Error>({
+    queryKey: ["restaurants", "popular", limit],
+    queryFn: async (): Promise<Restaurant[]> => {
+      const response = await fetch(`/api/restaurants/popular?limit=${limit}`);
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки популярных ресторанов");
+      }
+      return response.json();
     },
-    staleTime: 1000 * 60 * 30, // 30 минут
+    staleTime: 1000 * 60 * 15, // 15 минут
   });
 }
 
-// Хук для получения ресторанов по кухне
-export function useRestaurantsByCuisine(cuisineType: CuisineType) {
-  return useQuery({
-    queryKey: [...restaurantKeys.lists(), { cuisine: cuisineType }],
-    queryFn: () =>
-      appwriteService.getRestaurants([
-        Query.equal("status", RestaurantStatus.APPROVED),
-        Query.equal("cuisineType", cuisineType),
-        Query.orderDesc("averageRating"),
-      ]),
-    enabled: !!cuisineType,
-    staleTime: 1000 * 60 * 15,
+// Хук для поиска ресторанов по местоположению
+export function useNearbyRestaurants(
+  latitude: number,
+  longitude: number,
+  radius: number = 5000 // в метрах
+) {
+  return useQuery<Restaurant[], Error>({
+    queryKey: ["restaurants", "nearby", latitude, longitude, radius],
+    queryFn: async (): Promise<Restaurant[]> => {
+      const params = new URLSearchParams({
+        lat: latitude.toString(),
+        lng: longitude.toString(),
+        radius: radius.toString(),
+      });
+
+      const response = await fetch(`/api/restaurants/nearby?${params}`);
+      if (!response.ok) {
+        throw new Error("Ошибка поиска ресторанов поблизости");
+      }
+      return response.json();
+    },
+    enabled: !!(latitude && longitude),
+    staleTime: 1000 * 60 * 10, // 10 минут
+  });
+}
+
+// Хук для загрузки изображений ресторана
+export function useUploadRestaurantImages() {
+  return useMutation<string[], Error, { restaurantId: string; files: File[] }>({
+    mutationFn: async ({ restaurantId, files }): Promise<string[]> => {
+      const formData = new FormData();
+      files.forEach((file, index) => {
+        formData.append(`image-${index}`, file);
+      });
+
+      const response = await fetch(`/api/restaurants/${restaurantId}/images`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки изображений");
+      }
+
+      const result = await response.json();
+      return result.urls;
+    },
   });
 }

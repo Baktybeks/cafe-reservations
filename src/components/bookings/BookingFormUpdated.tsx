@@ -11,7 +11,6 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { useAuth } from "@/hooks/useAuth";
 import { useCreateBooking, useTableAvailability } from "@/hooks/useBookings";
 import { useRestaurantTables } from "@/hooks/useRestaurants";
-import { formatDateForInput, isValidBookingDate } from "@/utils/dateUtils";
 import {
   Calendar,
   Clock,
@@ -47,7 +46,7 @@ export default function BookingForm({
   const [specialRequests, setSpecialRequests] = useState("");
   const [selectedTableId, setSelectedTableId] = useState("");
 
-  const dateString = selectedDate ? formatDateForInput(selectedDate) : "";
+  const dateString = selectedDate?.toISOString().split("T")[0] || "";
 
   // Получаем столики ресторана
   const { data: tables = [] } = useRestaurantTables(restaurant.$id);

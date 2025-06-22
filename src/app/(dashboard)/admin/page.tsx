@@ -436,7 +436,7 @@ export default function AdminPage() {
                                   {booking.customerName}
                                 </p>
                                 <p className="text-sm text-gray-600">
-                                  {booking.date} в {booking.timeSlot}
+                                  {booking.date} в {booking.time}
                                 </p>
                               </div>
                               <Badge

@@ -1,4 +1,5 @@
 // src/utils/index.ts
+// Обновлен для использования формата dd.MM.yyyy
 
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -8,21 +9,24 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Форматирование даты
+// Форматирование даты в формате dd.MM.yyyy
 export const formatDate = (
   date: string | Date,
   options: Intl.DateTimeFormatOptions = {}
 ) => {
   const defaultOptions: Intl.DateTimeFormatOptions = {
     year: "numeric",
-    month: "long",
-    day: "numeric",
+    month: "2-digit",
+    day: "2-digit",
     ...options,
   };
 
-  return new Intl.DateTimeFormat("ru-RU", defaultOptions).format(
+  const formatted = new Intl.DateTimeFormat("ru-RU", defaultOptions).format(
     typeof date === "string" ? new Date(date) : date
   );
+
+  // Убеждаемся что используются точки как разделители
+  return formatted.replace(/\//g, ".");
 };
 
 // Форматирование времени
@@ -116,10 +120,26 @@ export const isValidPhone = (phone: string) => {
   return phone.length >= 10 && phoneRegex.test(phone);
 };
 
-// Форматирование телефона
+// Форматирование телефона для Кыргызстана
 export const formatPhone = (phone: string) => {
   const cleaned = phone.replace(/\D/g, "");
 
+  // Кыргызские номера (+996)
+  if (cleaned.length === 12 && cleaned.startsWith("996")) {
+    return `+996 (${cleaned.slice(3, 6)}) ${cleaned.slice(
+      6,
+      9
+    )}-${cleaned.slice(9, 11)}-${cleaned.slice(11)}`;
+  }
+
+  if (cleaned.length === 9 && !cleaned.startsWith("996")) {
+    return `+996 (${cleaned.slice(0, 3)}) ${cleaned.slice(
+      3,
+      6
+    )}-${cleaned.slice(6, 8)}-${cleaned.slice(8)}`;
+  }
+
+  // Российские номера (+7) для совместимости
   if (cleaned.length === 11 && cleaned.startsWith("7")) {
     return `+7 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(
       7,
@@ -213,8 +233,8 @@ export const generateTimeSlots = (
   return slots;
 };
 
-// Конвертация цены в читаемый формат
-export const formatPrice = (price: number, currency: string = "₽") => {
+// Конвертация цены в читаемый формат (сомы для Кыргызстана)
+export const formatPrice = (price: number, currency: string = "сом") => {
   return new Intl.NumberFormat("ru-RU").format(price) + " " + currency;
 };
 
@@ -225,6 +245,7 @@ export const getStatusColor = (status: string) => {
     CONFIRMED: "bg-green-100 text-green-800",
     CANCELLED: "bg-red-100 text-red-800",
     COMPLETED: "bg-blue-100 text-blue-800",
+    NO_SHOW: "bg-gray-100 text-gray-800",
     APPROVED: "bg-green-100 text-green-800",
     REJECTED: "bg-red-100 text-red-800",
     SUSPENDED: "bg-gray-100 text-gray-800",
@@ -442,6 +463,30 @@ export const storage = {
   },
 };
 
+// Специфичные для локализации функции
+export const formatDateKG = (date: string | Date) => {
+  return formatDate(date, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
+export const formatDateTimeKG = (date: string | Date, time?: string) => {
+  const formatted = formatDate(date, {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  if (time) {
+    return `${formatted} в ${time}`;
+  }
+
+  return formatted;
+};
+
 export default {
   cn,
   formatDate,
@@ -477,4 +522,6 @@ export default {
   getBrowserInfo,
   isOnline,
   storage,
+  formatDateKG,
+  formatDateTimeKG,
 };

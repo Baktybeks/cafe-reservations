@@ -5,8 +5,8 @@
 import React, { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { NotificationProvider } from "@/components/common/NotificationProvider";
 import { useSyncAuthCookie } from "@/hooks/useSyncAuthCookie";
+import SimpleNotificationProvider from "@/components/common/SimpleNotificationProvider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = React.useState(
@@ -46,7 +46,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       {isClient && process.env.NODE_ENV === "development" && (
         <ReactQueryDevtools initialIsOpen={false} />
       )}
-      <NotificationProvider />
+      <SimpleNotificationProvider />
     </QueryClientProvider>
   );
 }

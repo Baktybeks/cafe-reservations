@@ -1,4 +1,4 @@
-// src/middleware.ts
+// src/middleware.ts - Отладочная версия
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -11,6 +11,7 @@ export function middleware(request: NextRequest) {
   // Получаем auth cookie
   const authSession = request.cookies.get("auth-storage");
   console.log("🍪 Auth cookie найден:", !!authSession);
+  console.log("🍪 Auth cookie value:", authSession?.value ? "есть" : "нет");
 
   let user = null;
 
@@ -44,21 +45,29 @@ export function middleware(request: NextRequest) {
     path,
   });
 
-  // Публичные страницы и API маршруты
-  const publicPaths = ["/", "/restaurants", "/login", "/register"];
-  const isPublicPath = publicPaths.some(
-    (publicPath) =>
-      path === publicPath ||
-      path.startsWith("/api") ||
-      path.startsWith("/_next")
-  );
+  // ИСПРАВЛЕНО: Проверяем страницы ресторанов ПЕРВЫМИ
+  if (path.startsWith("/restaurants/")) {
+    console.log("🏪 Страница ресторана - всегда разрешаем доступ");
+    return NextResponse.next();
+  }
 
   // API маршруты и статические файлы пропускаем
   if (
     path.startsWith("/api") ||
     path.startsWith("/_next") ||
-    path.includes(".")
+    path.includes(".") ||
+    path.startsWith("/favicon")
   ) {
+    console.log("📁 Статический файл или API - пропускаем");
+    return NextResponse.next();
+  }
+
+  // Публичные страницы
+  const publicPaths = ["/", "/restaurants", "/login", "/register"];
+  const isPublicPath = publicPaths.includes(path);
+
+  if (isPublicPath) {
+    console.log("🌐 Публичная страница - разрешаем доступ");
     return NextResponse.next();
   }
 
@@ -72,15 +81,15 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Публичные страницы доступны всем
-  if (isPublicPath) {
-    console.log("🌐 Публичная страница, доступ разрешен");
-    return NextResponse.next();
+  // Проверка авторизации для защищенных маршрутов
+  if (!isAuthenticated) {
+    console.log("🚫 Пользователь не авторизован, перенаправляем на /login");
+    const loginUrl = new URL("/login", request.url);
+    return NextResponse.redirect(loginUrl);
   }
 
-  // Проверка авторизации для защищенных маршрутов
-  if (!isAuthenticated || !isActive) {
-    console.log("🚫 Неавторизованный доступ, перенаправляем на /login");
+  if (!isActive) {
+    console.log("🚫 Пользователь неактивен, перенаправляем на /login");
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
   }
@@ -146,12 +155,7 @@ function redirectByRole(role: UserRole, request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|public|favicon.ico).*)",
-    "/admin/:path*",
-    "/restaurant-owner/:path*",
-    "/customer/:path*",
-    "/login",
-    "/register",
-    "/",
+    // ИСПРАВЛЕНО: Упрощаем matcher
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
 };

@@ -1,360 +1,354 @@
-// src/hooks/useBookings.ts
+// hooks/useBookings.ts - пример типизированных хуков
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Query } from "appwrite";
-import { appwriteService } from "@/services/appwriteService";
-import { useNotificationStore } from "@/store/appStore";
-import {
-  Booking,
-  BookingFilters,
-  CreateBookingDto,
-  BookingStatus,
-  TableAvailability,
-  TimeSlot,
-} from "@/types";
+import { Booking, BookingFilters, BookingStatus } from "@/types";
 
-// Query keys
-export const bookingKeys = {
-  all: ["bookings"] as const,
-  lists: () => [...bookingKeys.all, "list"] as const,
-  list: (filters?: BookingFilters) =>
-    [...bookingKeys.lists(), filters] as const,
-  details: () => [...bookingKeys.all, "detail"] as const,
-  detail: (id: string) => [...bookingKeys.details(), id] as const,
-  user: (userId: string) => [...bookingKeys.all, "user", userId] as const,
-  restaurant: (restaurantId: string) =>
-    [...bookingKeys.all, "restaurant", restaurantId] as const,
-  availability: (restaurantId: string, date: string) =>
-    [...bookingKeys.all, "availability", restaurantId, date] as const,
-};
-
-// Хук для получения бронирований с фильтрацией
-export function useBookings(filters?: BookingFilters) {
-  return useQuery({
-    queryKey: bookingKeys.list(filters),
-    queryFn: async () => {
-      const queries: string[] = [Query.orderDesc("$createdAt")];
-
-      // Применяем фильтры
-      if (filters?.restaurantId) {
-        queries.push(Query.equal("restaurantId", filters.restaurantId));
-      }
-
-      if (filters?.customerId) {
-        queries.push(Query.equal("customerId", filters.customerId));
-      }
-
-      if (filters?.status?.length) {
-        queries.push(Query.equal("status", filters.status));
-      }
-
-      if (filters?.dateFrom) {
-        queries.push(Query.greaterThanEqual("date", filters.dateFrom));
-      }
-
-      if (filters?.dateTo) {
-        queries.push(Query.lessThanEqual("date", filters.dateTo));
-      }
-
-      const bookings = await appwriteService.getBookings(queries);
-
-      // Дополнительная фильтрация на клиенте
-      if (filters?.searchQuery) {
-        const searchLower = filters.searchQuery.toLowerCase();
-        return bookings.filter(
-          (booking) =>
-            booking.customerName.toLowerCase().includes(searchLower) ||
-            booking.customerEmail.toLowerCase().includes(searchLower) ||
-            booking.confirmationCode.toLowerCase().includes(searchLower)
-        );
-      }
-
-      return bookings;
-    },
-    staleTime: 1000 * 60 * 2, // 2 минуты
-  });
-}
-
-// Хук для получения бронирований пользователя
+// Типизированный хук для получения бронирований пользователя
 export function useUserBookings(userId: string) {
-  return useQuery({
-    queryKey: bookingKeys.user(userId),
-    queryFn: () => appwriteService.getUserBookings(userId),
-    enabled: !!userId,
-    staleTime: 1000 * 60 * 1, // 1 минута
-  });
-}
-
-// Хук для получения бронирований ресторана
-export function useRestaurantBookings(restaurantId: string) {
-  return useQuery({
-    queryKey: bookingKeys.restaurant(restaurantId),
-    queryFn: () => appwriteService.getRestaurantBookings(restaurantId),
-    enabled: !!restaurantId,
-    staleTime: 1000 * 60 * 1, // 1 минута
-  });
-}
-
-// Хук для получения конкретного бронирования
-export function useBooking(id: string) {
-  return useQuery({
-    queryKey: bookingKeys.detail(id),
-    queryFn: async () => {
-      const bookings = await appwriteService.getBookings([
-        Query.equal("$id", id),
-      ]);
-      return bookings[0] || null;
+  return useQuery<Booking[], Error>({
+    queryKey: ["bookings", "user", userId],
+    queryFn: async (): Promise<Booking[]> => {
+      const response = await fetch(`/api/bookings/user/${userId}`);
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки бронирований");
+      }
+      return response.json();
     },
-    enabled: !!id,
-    staleTime: 1000 * 60 * 2,
+    enabled: !!userId,
   });
 }
 
-// Хук для создания бронирования
+// Типизированный хук для отмены бронирования
+interface CancelBookingParams {
+  bookingId: string;
+  reason: string;
+}
+
+export function useCancelBooking() {
+  const queryClient = useQueryClient();
+
+  return useMutation<Booking, Error, CancelBookingParams>({
+    mutationFn: async ({ bookingId, reason }): Promise<Booking> => {
+      const response = await fetch(`/api/bookings/${bookingId}/cancel`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reason }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Ошибка отмены бронирования");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      // Обновляем кэш после успешной отмены
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    },
+  });
+}
+
+// Хук для создания нового бронирования
+interface CreateBookingParams {
+  restaurantId: string;
+  date: string;
+  time: string;
+  guestCount: number;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  specialRequests?: string;
+}
+
 export function useCreateBooking() {
   const queryClient = useQueryClient();
-  const { addNotification } = useNotificationStore();
 
-  return useMutation({
-    mutationFn: ({
-      data,
-      customerId,
-    }: {
-      data: CreateBookingDto;
-      customerId: string;
-    }) => appwriteService.createBooking(data, customerId),
-    onSuccess: (booking) => {
-      // Инвалидируем связанные запросы
-      queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
-      queryClient.invalidateQueries({
-        queryKey: bookingKeys.user(booking.customerId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: bookingKeys.restaurant(booking.restaurantId),
+  return useMutation<Booking, Error, CreateBookingParams>({
+    mutationFn: async (bookingData): Promise<Booking> => {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(bookingData),
       });
 
-      // Инвалидируем доступность для этого ресторана и даты
-      queryClient.invalidateQueries({
-        queryKey: bookingKeys.availability(booking.restaurantId, booking.date),
-      });
+      if (!response.ok) {
+        throw new Error("Ошибка создания бронирования");
+      }
 
-      addNotification({
-        type: "success",
-        title: "Бронирование создано",
-        message: `Ваше бронирование подтверждено. Код: ${booking.confirmationCode}`,
-        duration: 8000,
-      });
+      return response.json();
     },
-    onError: (error: any) => {
-      addNotification({
-        type: "error",
-        title: "Ошибка бронирования",
-        message: error.message || "Не удалось создать бронирование",
-      });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
     },
   });
 }
 
-// Хук для обновления статуса бронирования
+// Хук для обновления статуса бронирования (для ресторанов)
+interface UpdateBookingStatusParams {
+  bookingId: string;
+  status: BookingStatus;
+  notes?: string;
+}
+
 export function useUpdateBookingStatus() {
   const queryClient = useQueryClient();
-  const { addNotification } = useNotificationStore();
 
-  return useMutation({
-    mutationFn: ({
-      bookingId,
-      status,
-      notes,
-    }: {
-      bookingId: string;
-      status: BookingStatus;
-      notes?: string;
-    }) => appwriteService.updateBookingStatus(bookingId, status, notes),
-    onSuccess: (booking, variables) => {
-      if (booking) {
-        // Обновляем кеш конкретного бронирования
-        queryClient.setQueryData(bookingKeys.detail(booking.$id), booking);
+  return useMutation<Booking, Error, UpdateBookingStatusParams>({
+    mutationFn: async ({ bookingId, status, notes }): Promise<Booking> => {
+      const response = await fetch(`/api/bookings/${bookingId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status, notes }),
+      });
 
-        // Инвалидируем списки
-        queryClient.invalidateQueries({ queryKey: bookingKeys.lists() });
-        queryClient.invalidateQueries({
-          queryKey: bookingKeys.user(booking.customerId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: bookingKeys.restaurant(booking.restaurantId),
-        });
-
-        // Инвалидируем доступность
-        queryClient.invalidateQueries({
-          queryKey: bookingKeys.availability(
-            booking.restaurantId,
-            booking.date
-          ),
-        });
-
-        const statusText =
-          {
-            [BookingStatus.PENDING]: "ожидает подтверждения",
-            [BookingStatus.CONFIRMED]: "подтверждено",
-            [BookingStatus.CANCELLED]: "отменено",
-            [BookingStatus.COMPLETED]: "завершено",
-            [BookingStatus.NO_SHOW]: "отмечено как неявка",
-          }[variables.status] || "обновлено";
-
-        addNotification({
-          type:
-            variables.status === BookingStatus.CONFIRMED
-              ? "success"
-              : "warning",
-          title: "Статус изменен",
-          message: `Бронирование ${statusText}`,
-        });
+      if (!response.ok) {
+        throw new Error("Ошибка обновления статуса бронирования");
       }
+
+      return response.json();
     },
-    onError: (error: any) => {
-      addNotification({
-        type: "error",
-        title: "Ошибка обновления",
-        message: error.message || "Не удалось обновить статус бронирования",
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    },
+  });
+}
+
+// Типы для доступности столиков
+interface TimeSlot {
+  time: string;
+  available: boolean;
+  capacity: number;
+  bookedCount: number;
+}
+
+interface TableAvailability {
+  date: string;
+  timeSlots: TimeSlot[];
+  totalTables: number;
+  availableTables: number;
+}
+
+interface AvailabilityParams {
+  restaurantId: string;
+  date: string;
+  guestCount?: number;
+}
+
+// Хук для проверки доступности столиков
+export function useTableAvailability(params: AvailabilityParams) {
+  return useQuery<TableAvailability, Error>({
+    queryKey: [
+      "availability",
+      params.restaurantId,
+      params.date,
+      params.guestCount,
+    ],
+    queryFn: async (): Promise<TableAvailability> => {
+      const searchParams = new URLSearchParams({
+        restaurantId: params.restaurantId,
+        date: params.date,
+        ...(params.guestCount && { guestCount: params.guestCount.toString() }),
+      });
+
+      const response = await fetch(`/api/availability?${searchParams}`);
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки доступности столиков");
+      }
+
+      return response.json();
+    },
+    enabled: !!(params.restaurantId && params.date),
+    staleTime: 1000 * 60 * 2, // 2 минуты
+    refetchInterval: 1000 * 60 * 5, // Обновляем каждые 5 минут
+  });
+}
+
+// Хук для получения доступных временных слотов
+export function useAvailableTimeSlots(
+  restaurantId: string,
+  date: string,
+  guestCount: number
+) {
+  return useQuery<string[], Error>({
+    queryKey: ["timeSlots", restaurantId, date, guestCount],
+    queryFn: async (): Promise<string[]> => {
+      const response = await fetch(
+        `/api/availability/time-slots?restaurantId=${restaurantId}&date=${date}&guestCount=${guestCount}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки временных слотов");
+      }
+
+      const data = await response.json();
+      return data.availableSlots || [];
+    },
+    enabled: !!(restaurantId && date && guestCount > 0),
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+// Хук для резервирования временного слота (опциональная предварительная резервация)
+interface ReserveSlotParams {
+  restaurantId: string;
+  date: string;
+  time: string;
+  guestCount: number;
+}
+
+export function useReserveTimeSlot() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { reservationToken: string; expiresIn: number },
+    Error,
+    ReserveSlotParams
+  >({
+    mutationFn: async (
+      params
+    ): Promise<{ reservationToken: string; expiresIn: number }> => {
+      const response = await fetch("/api/availability/reserve", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(params),
+      });
+
+      if (!response.ok) {
+        throw new Error("Ошибка резервирования временного слота");
+      }
+
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      // Обновляем данные о доступности после резервирования
+      queryClient.invalidateQueries({
+        queryKey: ["availability", variables.restaurantId, variables.date],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["timeSlots", variables.restaurantId, variables.date],
       });
     },
   });
 }
 
-// Хук для отмены бронирования
-export function useCancelBooking() {
-  const updateBookingStatus = useUpdateBookingStatus();
-
-  return useMutation({
-    mutationFn: ({
-      bookingId,
-      reason,
-    }: {
-      bookingId: string;
-      reason?: string;
-    }) =>
-      updateBookingStatus.mutateAsync({
-        bookingId,
-        status: BookingStatus.CANCELLED,
-        notes: reason,
-      }),
-  });
+// Хук для получения информации о ресторане
+interface Restaurant {
+  $id: string;
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  description?: string;
+  cuisine: string[];
+  priceRange: string;
+  rating: number;
+  images: string[];
+  workingHours: {
+    [key: string]: { open: string; close: string; closed?: boolean };
+  };
+  capacity: number;
+  features: string[];
 }
 
-// Хук для подтверждения бронирования
-export function useConfirmBooking() {
-  const updateBookingStatus = useUpdateBookingStatus();
-
-  return useMutation({
-    mutationFn: ({ bookingId, notes }: { bookingId: string; notes?: string }) =>
-      updateBookingStatus.mutateAsync({
-        bookingId,
-        status: BookingStatus.CONFIRMED,
-        notes,
-      }),
-  });
-}
-
-// Хук для получения доступности столиков
-export function useTableAvailability(restaurantId: string, date: string) {
-  return useQuery({
-    queryKey: bookingKeys.availability(restaurantId, date),
-    queryFn: async (): Promise<TableAvailability> => {
-      if (!restaurantId || !date) {
-        return { date, timeSlots: [] };
+export function useRestaurant(restaurantId: string) {
+  return useQuery<Restaurant, Error>({
+    queryKey: ["restaurant", restaurantId],
+    queryFn: async (): Promise<Restaurant> => {
+      const response = await fetch(`/api/restaurants/${restaurantId}`);
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки информации о ресторане");
       }
+      return response.json();
+    },
+    enabled: !!restaurantId,
+    staleTime: 1000 * 60 * 10, // 10 минут
+  });
+}
 
-      // Получаем столики ресторана
-      const tables = await appwriteService.getRestaurantTables(restaurantId);
+// Хук для получения бронирований ресторана (для владельцев)
+export function useRestaurantBookings(restaurantId: string, date?: string) {
+  return useQuery<Booking[], Error>({
+    queryKey: ["bookings", "restaurant", restaurantId, date],
+    queryFn: async (): Promise<Booking[]> => {
+      const params = new URLSearchParams({ restaurantId });
+      if (date) params.append("date", date);
 
-      // Получаем существующие бронирования на эту дату
-      const bookings = await appwriteService.getBookings([
-        Query.equal("restaurantId", restaurantId),
-        Query.equal("date", date),
-        Query.notEqual("status", BookingStatus.CANCELLED),
-      ]);
+      const response = await fetch(`/api/bookings/restaurant?${params}`);
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки бронирований ресторана");
+      }
+      return response.json();
+    },
+    enabled: !!restaurantId,
+  });
+}
 
-      // Генерируем временные слоты (например, каждые 30 минут с 12:00 до 23:00)
-      const timeSlots: TimeSlot[] = [];
-      const startHour = 12;
-      const endHour = 23;
-      const slotInterval = 30; // минут
+// Универсальный хук для получения бронирований с фильтрами
+export function useBookings(filters?: BookingFilters) {
+  return useQuery<Booking[], Error>({
+    queryKey: ["bookings", filters],
+    queryFn: async (): Promise<Booking[]> => {
+      const params = new URLSearchParams();
 
-      for (let hour = startHour; hour < endHour; hour++) {
-        for (let minute = 0; minute < 60; minute += slotInterval) {
-          const time = `${hour.toString().padStart(2, "0")}:${minute
-            .toString()
-            .padStart(2, "0")}`;
-
-          // Подсчитываем занятые столики на это время
-          const bookedTables = bookings.filter((booking) => {
-            const bookingTime = booking.timeSlot;
-            const bookingEndTime = addMinutes(bookingTime, booking.duration);
-            return timeInRange(time, bookingTime, bookingEndTime);
-          }).length;
-
-          const availableTables = tables.length - bookedTables;
-
-          timeSlots.push({
-            time,
-            availableTables: Math.max(0, availableTables),
-            totalTables: tables.length,
-            isAvailable: availableTables > 0,
-          });
+      if (filters?.restaurantId) {
+        params.append("restaurantId", filters.restaurantId);
+      }
+      if (filters?.customerId) {
+        params.append("customerId", filters.customerId);
+      }
+      if (filters?.status && filters.status !== "all") {
+        if (Array.isArray(filters.status)) {
+          filters.status.forEach((status) => params.append("status", status));
+        } else {
+          params.append("status", filters.status);
         }
       }
+      if (filters?.dateFrom) {
+        params.append("dateFrom", filters.dateFrom);
+      }
+      if (filters?.dateTo) {
+        params.append("dateTo", filters.dateTo);
+      }
+      if (filters?.searchQuery) {
+        params.append("search", filters.searchQuery);
+      }
 
-      return { date, timeSlots };
+      const response = await fetch(`/api/bookings?${params}`);
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки бронирований");
+      }
+      return response.json();
     },
-    enabled: !!restaurantId && !!date,
-    staleTime: 1000 * 60 * 5, // 5 минут
+    enabled: true,
   });
 }
 
-// Вспомогательные функции
-function addMinutes(time: string, minutes: number): string {
-  const [hours, mins] = time.split(":").map(Number);
-  const totalMinutes = hours * 60 + mins + minutes;
-  const newHours = Math.floor(totalMinutes / 60) % 24;
-  const newMins = totalMinutes % 60;
-  return `${newHours.toString().padStart(2, "0")}:${newMins
-    .toString()
-    .padStart(2, "0")}`;
-}
+// Хук для получения бронирований нескольких ресторанов
+export function useMultipleRestaurantBookings(restaurantIds: string[]) {
+  return useQuery<Booking[], Error>({
+    queryKey: ["bookings", "multiple-restaurants", restaurantIds],
+    queryFn: async (): Promise<Booking[]> => {
+      if (restaurantIds.length === 0) {
+        return [];
+      }
 
-function timeInRange(
-  checkTime: string,
-  startTime: string,
-  endTime: string
-): boolean {
-  const check = timeToMinutes(checkTime);
-  const start = timeToMinutes(startTime);
-  const end = timeToMinutes(endTime);
-  return check >= start && check < end;
-}
+      const params = new URLSearchParams();
+      restaurantIds.forEach((id) => params.append("restaurantIds", id));
 
-function timeToMinutes(time: string): number {
-  const [hours, minutes] = time.split(":").map(Number);
-  return hours * 60 + minutes;
-}
-
-// Хук для получения предстоящих бронирований
-export function useUpcomingBookings(userId: string) {
-  const today = new Date().toISOString().split("T")[0];
-
-  return useQuery({
-    queryKey: [...bookingKeys.user(userId), { upcoming: true }],
-    queryFn: async () => {
-      const bookings = await appwriteService.getUserBookings(userId);
-      return bookings.filter(
-        (booking) =>
-          booking.date >= today &&
-          [BookingStatus.PENDING, BookingStatus.CONFIRMED].includes(
-            booking.status
-          )
-      );
+      const response = await fetch(`/api/bookings/multiple?${params}`);
+      if (!response.ok) {
+        throw new Error("Ошибка загрузки бронирований");
+      }
+      return response.json();
     },
-    enabled: !!userId,
-    staleTime: 1000 * 60 * 2,
+    enabled: restaurantIds.length > 0,
   });
 }
