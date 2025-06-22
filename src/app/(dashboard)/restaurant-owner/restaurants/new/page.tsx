@@ -47,7 +47,7 @@ export default function NewRestaurantPage() {
       city: "",
       state: "",
       zipCode: "",
-      country: "Россия",
+      country: "Кыргызстан",
     },
     phone: "",
     email: "",
@@ -318,7 +318,7 @@ export default function NewRestaurantPage() {
                     name="address.street"
                     value={formData.address.street}
                     onChange={handleInputChange}
-                    placeholder="ул. Пушкина, д. 1"
+                    placeholder="Улица и дом"
                     required
                   />
 
@@ -327,18 +327,18 @@ export default function NewRestaurantPage() {
                     name="address.city"
                     value={formData.address.city}
                     onChange={handleInputChange}
-                    placeholder="Москва"
+                    placeholder="Город"
                     required
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Input
-                    label="Регион"
+                    label="Область"
                     name="address.state"
                     value={formData.address.state}
                     onChange={handleInputChange}
-                    placeholder="Московская область"
+                    placeholder="область"
                   />
 
                   <Input
@@ -354,7 +354,7 @@ export default function NewRestaurantPage() {
                     name="address.country"
                     value={formData.address.country}
                     onChange={handleInputChange}
-                    placeholder="Россия"
+                    placeholder="Страна"
                   />
                 </div>
 
@@ -376,7 +376,7 @@ export default function NewRestaurantPage() {
                     type="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    placeholder="info@restaurant.ru"
+                    placeholder="info@restaurant.kg"
                     icon={Mail}
                     required
                   />
@@ -387,7 +387,7 @@ export default function NewRestaurantPage() {
                     type="url"
                     value={formData.website}
                     onChange={handleInputChange}
-                    placeholder="https://restaurant.ru"
+                    placeholder="https://restaurant.kg"
                     icon={Globe}
                     required
                   />

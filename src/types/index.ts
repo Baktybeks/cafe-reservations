@@ -117,6 +117,7 @@ export interface Restaurant extends BaseDocument {
   // Рейтинг и отзывы
   averageRating: number;
   totalReviews: number;
+  moderationNote?: string;
 }
 
 // Адрес
@@ -283,6 +284,7 @@ export interface RestaurantFilters {
   partySize?: number;
   amenities?: string[];
   searchQuery?: string;
+  showAll?: boolean;
 }
 
 // Фильтры для бронирований

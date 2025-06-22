@@ -1,4 +1,4 @@
-// src/app/(dashboard)/admin/page.tsx
+// src/app/admin/page.tsx
 
 "use client";
 
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { RestaurantCard } from "@/components/restaurants/RestaurantCard";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { useAuth } from "@/hooks/useAuth";
-import { useRestaurants } from "@/hooks/useRestaurants";
+import { useAllRestaurants } from "@/hooks/useRestaurants";
 import { useBookings } from "@/hooks/useBookings";
 import {
   Users,
@@ -36,9 +36,9 @@ export default function AdminPage() {
     "overview" | "restaurants" | "bookings" | "users"
   >("overview");
 
-  // Получаем данные
+  // ИЗМЕНЕНО: Получаем ВСЕ рестораны для админа (включая на модерации)
   const { data: allRestaurants = [], isLoading: restaurantsLoading } =
-    useRestaurants();
+    useAllRestaurants();
   const { data: allBookings = [], isLoading: bookingsLoading } = useBookings();
 
   // Проверяем права доступа
@@ -70,6 +70,9 @@ export default function AdminPage() {
     approvedRestaurants: allRestaurants.filter(
       (r) => r.status === RestaurantStatus.APPROVED
     ).length,
+    rejectedRestaurants: allRestaurants.filter(
+      (r) => r.status === RestaurantStatus.REJECTED
+    ).length,
     totalBookings: allBookings.length,
     pendingBookings: allBookings.filter(
       (b) => b.status === BookingStatus.PENDING
@@ -86,6 +89,17 @@ export default function AdminPage() {
     (r) => r.status === RestaurantStatus.PENDING
   );
   const recentBookings = allBookings.slice(0, 5);
+
+  // Функции обработчики
+  const handleModerateRestaurant = (restaurant: any) => {
+    // Переходим на страницу детальной модерации
+    router.push(`/admin/restaurants?restaurant=${restaurant.$id}`);
+  };
+
+  const handleViewRestaurant = (restaurant: any) => {
+    // Для админа - открываем модерацию
+    router.push(`/admin/restaurants?restaurant=${restaurant.$id}`);
+  };
 
   return (
     <Layout>
@@ -253,6 +267,47 @@ export default function AdminPage() {
                 </Card>
               </div>
 
+              {/* ДОБАВЛЕНО: Дополнительная статистика по статусам ресторанов */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card>
+                  <CardContent padding="md">
+                    <div className="text-center">
+                      <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-gray-900">
+                        {stats.approvedRestaurants}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Одобренные рестораны
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent padding="md">
+                    <div className="text-center">
+                      <Clock className="h-12 w-12 text-yellow-500 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-gray-900">
+                        {stats.pendingRestaurants}
+                      </p>
+                      <p className="text-sm text-gray-600">На модерации</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent padding="md">
+                    <div className="text-center">
+                      <XCircle className="h-12 w-12 text-red-500 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-gray-900">
+                        {stats.rejectedRestaurants}
+                      </p>
+                      <p className="text-sm text-gray-600">Отклонённые</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
               {/* Alerts */}
               {(stats.pendingRestaurants > 0 || stats.pendingBookings > 0) && (
                 <Card>
@@ -329,6 +384,8 @@ export default function AdminPage() {
                             restaurant={restaurant}
                             variant="compact"
                             showStatus
+                            onModerate={handleModerateRestaurant}
+                            onView={handleViewRestaurant}
                           />
                         ))}
                         {pendingRestaurants.length > 3 && (
@@ -423,8 +480,12 @@ export default function AdminPage() {
                   Управление ресторанами
                 </h2>
                 <div className="flex space-x-3">
-                  <Button variant="outline" icon={Eye}>
-                    Все рестораны
+                  <Button
+                    variant="outline"
+                    icon={Eye}
+                    onClick={() => router.push("/admin/restaurants")}
+                  >
+                    Подробная модерация
                   </Button>
                 </div>
               </div>
@@ -444,6 +505,8 @@ export default function AdminPage() {
                       key={restaurant.$id}
                       restaurant={restaurant}
                       showStatus
+                      onModerate={handleModerateRestaurant}
+                      onView={handleViewRestaurant}
                     />
                   ))}
                 </div>

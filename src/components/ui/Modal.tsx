@@ -52,40 +52,51 @@ export function Modal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] overflow-y-auto">
       {/* Backdrop */}
-      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-          onClick={onClose}
-        />
+      <div
+        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
-        {/* Modal */}
-        <div
-          className={`
-            inline-block align-bottom bg-white rounded-lg text-left overflow-hidden 
-            shadow-xl transform transition-all sm:my-8 sm:align-middle sm:w-full 
-            ${sizeClasses[size]} 
-            ${className}
-          `}
-        >
-          {/* Header */}
-          {title && (
-            <div className="bg-white px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">{title}</h3>
-                <button
-                  onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+      {/* Modal Container */}
+      <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+        <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+          {/* Modal Panel */}
+          <div
+            className={`
+              relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl 
+              transition-all sm:my-8 sm:w-full
+              ${sizeClasses[size]} 
+              ${className}
+            `}
+            onClick={(e) => e.stopPropagation()} // Предотвращаем закрытие при клике на модальное окно
+          >
+            {/* Header */}
+            {title && (
+              <div className="bg-white px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {title}
+                  </h3>
+                  <button
+                    onClick={onClose}
+                    className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+                    type="button"
+                  >
+                    <span className="sr-only">Закрыть</span>
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Content */}
-          <div className="bg-white px-6 py-4">{children}</div>
+            {/* Content */}
+            <div className="bg-white px-6 py-4 max-h-[calc(100vh-8rem)] overflow-y-auto">
+              {children}
+            </div>
+          </div>
         </div>
       </div>
     </div>

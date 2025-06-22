@@ -313,3 +313,77 @@ a {
     --ring: 240 4.9% 83.9%;
   }
 }
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-content {
+  position: relative;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-height: calc(100vh - 2rem);
+  overflow: hidden;
+  width: 100%;
+  z-index: 10000;
+}
+
+/* Убираем конфликты с другими z-index */
+.modal-backdrop {
+  z-index: 9999 !important;
+}
+
+/* Анимации для модального окна */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes backdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-animate-in {
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+.backdrop-animate-in {
+  animation: backdropFadeIn 0.2s ease-out;
+}
+
+/* Обеспечиваем, что модальное окно всегда видно */
+.modal-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 9999 !important;
+  pointer-events: none;
+}
+
+.modal-container > * {
+  pointer-events: auto;
+}

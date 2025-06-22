@@ -50,8 +50,9 @@ export function useRestaurants(filters?: RestaurantFilters) {
         queries.push(Query.greaterThanEqual("averageRating", filters.rating));
       }
 
-      // Для клиентов показываем только одобренные рестораны
-      if (!filters?.searchQuery?.includes("admin")) {
+      // ИСПРАВЛЕНО: Показываем только одобренные рестораны, если не указано showAll
+      // Это позволит админам видеть все рестораны, включая на модерации
+      if (!filters?.showAll) {
         queries.push(Query.equal("status", RestaurantStatus.APPROVED));
       }
 
@@ -109,6 +110,13 @@ export function useOwnerRestaurants(ownerId: string) {
     enabled: !!ownerId,
     staleTime: 1000 * 60 * 2,
   });
+}
+
+// ДОБАВЛЕН: Хук специально для админов - показывает все рестораны
+export function useAllRestaurants(
+  filters?: Omit<RestaurantFilters, "showAll">
+) {
+  return useRestaurants({ ...filters, showAll: true });
 }
 
 // Хук для получения статистики ресторана
