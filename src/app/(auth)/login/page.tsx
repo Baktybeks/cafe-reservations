@@ -162,10 +162,6 @@ export default function LoginPage() {
               Демо аккаунты для тестирования:
             </h3>
             <div className="space-y-3 text-xs">
-              <div className="flex items-center justify-between p-2 bg-red-50 rounded">
-                <span className="font-medium">Администратор</span>
-                <span className="text-gray-600">admin@example.com</span>
-              </div>
               <div className="flex items-center justify-between p-2 bg-blue-50 rounded">
                 <span className="font-medium">Владелец ресторана</span>
                 <span className="text-gray-600">owner@example.com</span>

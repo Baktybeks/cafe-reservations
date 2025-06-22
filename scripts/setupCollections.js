@@ -46,7 +46,7 @@ const COLLECTION_SCHEMAS = {
     },
 
     // Address (JSON строка)
-    address: { type: "string", required: true, size: 1000 },
+    address: { type: "string", required: true, size: 2000 },
     phone: { type: "string", required: true, size: 50 },
     email: { type: "email", required: true, size: 320 },
     website: { type: "url", required: false, size: 500 },

@@ -201,7 +201,7 @@ npm run dev
 
 Для тестирования можете использовать следующие демо аккаунты:
 
-- **Администратор**: admin@example.com / password123
+- **Администратор**: admin@example.com / 098098098
 - **Владелец ресторана**: owner@example.com / password123
 - **Клиент**: customer@example.com / password123
 

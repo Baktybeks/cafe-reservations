@@ -131,7 +131,6 @@ export default function AdminPage() {
                       icon: Calendar,
                       badge: stats.pendingBookings,
                     },
-                    { id: "users", label: "Пользователи", icon: Users },
                   ].map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -146,7 +145,8 @@ export default function AdminPage() {
                         }`}
                       >
                         <Icon className="h-4 w-4 mr-2" />
-                        {tab.label}
+
+                        <div className="mr-2">{tab.label}</div>
                         {tab.badge && tab.badge > 0 && (
                           <Badge variant="error" size="sm" className="ml-2">
                             {tab.badge}
@@ -478,32 +478,6 @@ export default function AdminPage() {
                   ))}
                 </div>
               )}
-            </div>
-          )}
-
-          {activeTab === "users" && (
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Управление пользователями
-                </h2>
-                <Button icon={Users}>Добавить пользователя</Button>
-              </div>
-
-              <Card>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Управление пользователями
-                    </h3>
-                    <p className="text-gray-500 mb-4">
-                      Функционал управления пользователями в разработке
-                    </p>
-                    <Button variant="outline">Скоро появится</Button>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           )}
         </div>
