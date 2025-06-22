@@ -194,6 +194,7 @@ export function useUpdateBookingStatus() {
 
         const statusText =
           {
+            [BookingStatus.PENDING]: "ожидает подтверждения",
             [BookingStatus.CONFIRMED]: "подтверждено",
             [BookingStatus.CANCELLED]: "отменено",
             [BookingStatus.COMPLETED]: "завершено",

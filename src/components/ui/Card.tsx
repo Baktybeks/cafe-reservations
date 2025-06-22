@@ -81,9 +81,20 @@ export function CardTitle({ children, className = "" }: CardTitleProps) {
 interface CardContentProps {
   children: ReactNode;
   className?: string;
+  padding?: "none" | "sm" | "md" | "lg";
 }
 
-export function CardContent({ children, className = "" }: CardContentProps) {
+export function CardContent({
+  children,
+  className = "",
+  padding = "md",
+}: CardContentProps) {
+  const paddingClasses = {
+    none: "",
+    sm: "p-3",
+    md: "p-6",
+    lg: "p-8",
+  };
   return <div className={className}>{children}</div>;
 }
 
