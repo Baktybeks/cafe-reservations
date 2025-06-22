@@ -92,7 +92,7 @@ export default function NewRestaurantPage() {
       setFormData((prev) => ({
         ...prev,
         [parent]: {
-          ...prev[parent as keyof CreateRestaurantDto],
+          ...(prev[parent as keyof CreateRestaurantDto] as object),
           [child]: type === "number" ? Number(value) : value,
         },
       }));

@@ -111,9 +111,11 @@ export default function RestaurantBookingPage() {
 
   const isOpenNow = () => {
     const now = new Date();
-    const currentDay = now.toLocaleDateString("en-US", {
-      weekday: "lowercase",
-    }) as keyof typeof restaurant.workingHours;
+
+    const currentDay = now
+      .toLocaleDateString("en-US", { weekday: "long" })
+      .toLowerCase() as keyof typeof restaurant.workingHours;
+
     const currentTime = now.getHours() * 60 + now.getMinutes();
 
     const todayHours = restaurant.workingHours[currentDay];
@@ -380,9 +382,9 @@ export default function RestaurantBookingPage() {
                         sunday: "Вс",
                       };
 
-                      const today = new Date().toLocaleDateString("en-US", {
-                        weekday: "lowercase",
-                      });
+                      const today = new Date()
+                        .toLocaleDateString("en-US", { weekday: "long" })
+                        .toLowerCase();
                       const isToday = day === today;
 
                       return (

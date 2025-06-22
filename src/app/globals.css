@@ -1,5 +1,5 @@
-@import "react-toastify/dist/ReactToastify.css";
 @import "tailwindcss";
+@import "react-toastify/dist/ReactToastify.css";
 @import "react-datepicker/dist/react-datepicker.css";
 
 @theme {
@@ -16,13 +16,61 @@
   --breakpoint-b1400: 1400px;
 }
 
+/* CSS Variables */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+}
+
 html,
 body {
   padding: 0;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
-  background-color: #f9fafb;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
 }
 
 a {
@@ -32,9 +80,29 @@ a {
 
 * {
   box-sizing: border-box;
+  border-color: hsl(var(--border));
 }
 
-/* Анимации */
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--foreground));
+}
+
+/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -67,6 +135,15 @@ a {
   }
 }
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .fade-in {
   animation: fadeIn 0.3s ease-in-out;
 }
@@ -79,59 +156,51 @@ a {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Дополнительные утилиты */
-.text-shadow {
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.backdrop-blur {
-  backdrop-filter: blur(8px);
-}
-
-/* React DatePicker стили */
+/* React DatePicker custom styles */
 .react-datepicker-wrapper {
   width: 100%;
 }
 
 .react-datepicker {
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  font-family: inherit;
 }
 
 .react-datepicker__header {
-  background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-  border-top-left-radius: 0.5rem;
-  border-top-right-radius: 0.5rem;
+  background-color: hsl(var(--muted));
+  border-bottom: 1px solid hsl(var(--border));
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
 }
 
 .react-datepicker__current-month {
   font-weight: 600;
-  color: #374151;
+  color: hsl(var(--foreground));
 }
 
 .react-datepicker__day--selected {
-  background-color: #4f46e5;
-  color: white;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 .react-datepicker__day--keyboard-selected {
-  background-color: #a5b4fc;
-  color: white;
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
 }
 
 .react-datepicker__day:hover {
-  background-color: #e0e7ff;
-  color: #4338ca;
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
 }
 
 .react-datepicker__day--outside-month {
-  color: #9ca3af;
+  color: hsl(var(--muted-foreground));
 }
 
 .react-datepicker__day--disabled {
-  color: #d1d5db;
+  color: hsl(var(--muted-foreground));
   cursor: not-allowed;
 }
 
@@ -139,10 +208,11 @@ a {
   background-color: transparent;
 }
 
-/* Toast стили */
+/* Toast notifications */
 .Toastify__toast {
-  border-radius: 0.5rem;
+  border-radius: var(--radius);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  font-family: inherit;
 }
 
 .Toastify__toast--success {
@@ -161,31 +231,12 @@ a {
   background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
 }
 
-/* Скроллбар */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Фокус состояния */
+/* Focus styles */
 .focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
+  @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary;
 }
 
-/* Утилиты для карточек */
+/* Card hover effects */
 .card-hover {
   transition: all 0.2s ease-in-out;
 }
@@ -196,7 +247,7 @@ a {
     0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-/* Градиенты */
+/* Gradient utilities */
 .gradient-primary {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
@@ -213,97 +264,28 @@ a {
   background: linear-gradient(135deg, #fdbb2d 0%, #22c1c3 100%);
 }
 
-/* Утилиты для изображений */
-.image-blur-load {
-  transition: filter 0.3s ease;
-  filter: blur(5px);
+/* Loading states */
+.loading-skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    transparent 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
 }
 
-.image-blur-load.loaded {
-  filter: blur(0);
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
-/* Кастомные селекты */
-select {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-  background-position: right 0.5rem center;
-  background-repeat: no-repeat;
-  background-size: 1.5em 1.5em;
-  padding-right: 2.5rem;
-}
-
-/* Утилиты для форм */
-.form-group {
-  @apply space-y-2;
-}
-
-.form-label {
-  @apply block text-sm font-medium text-gray-700;
-}
-
-.form-input {
-  @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500;
-}
-
-.form-error {
-  @apply text-sm text-red-600;
-}
-
-.form-help {
-  @apply text-sm text-gray-500;
-}
-
-/* Статистические карточки */
-.stat-card {
-  @apply bg-white rounded-lg shadow p-6 border border-gray-200;
-}
-
-.stat-value {
-  @apply text-2xl font-bold text-gray-900;
-}
-
-.stat-label {
-  @apply text-sm font-medium text-gray-500;
-}
-
-.stat-change {
-  @apply text-sm font-medium;
-}
-
-.stat-change.positive {
-  @apply text-green-600;
-}
-
-.stat-change.negative {
-  @apply text-red-600;
-}
-
-/* Бейджи */
-.badge {
-  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
-}
-
-.badge-success {
-  @apply bg-green-100 text-green-800;
-}
-
-.badge-warning {
-  @apply bg-yellow-100 text-yellow-800;
-}
-
-.badge-error {
-  @apply bg-red-100 text-red-800;
-}
-
-.badge-info {
-  @apply bg-blue-100 text-blue-800;
-}
-
-.badge-secondary {
-  @apply bg-gray-100 text-gray-800;
-}
-
-/* Печать */
+/* Print styles */
 @media print {
   .no-print {
     display: none !important;
@@ -314,13 +296,27 @@ select {
   }
 }
 
-/* Темная тема (если понадобится) */
+/* Dark mode support */
 @media (prefers-color-scheme: dark) {
-  .dark-theme {
-    --bg-primary: #1f2937;
-    --bg-secondary: #374151;
-    --text-primary: #f9fafb;
-    --text-secondary: #d1d5db;
-    --border-color: #4b5563;
+  .dark-auto {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
   }
 }

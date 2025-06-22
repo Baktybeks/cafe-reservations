@@ -59,8 +59,20 @@ export function RestaurantCard({
   // Проверяем, открыт ли ресторан сейчас
   const isOpenNow = () => {
     const now = new Date();
-    const currentDay =
-      now.toLocaleLowerCase() as keyof typeof restaurant.workingHours;
+    const days = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
+
+    const currentDay = days[
+      now.getDay()
+    ] as keyof typeof restaurant.workingHours;
+
     const currentTime = now.getHours() * 60 + now.getMinutes();
 
     const todayHours = restaurant.workingHours[currentDay];

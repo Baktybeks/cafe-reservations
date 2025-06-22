@@ -15,7 +15,8 @@ interface ButtonProps {
     | "outline"
     | "ghost"
     | "danger"
-    | "success";
+    | "success"
+    | "warning";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
   disabled?: boolean;
@@ -53,6 +54,8 @@ export function Button({
       "text-white bg-red-600 hover:bg-red-700 focus:ring-red-500 shadow-sm hover:shadow-md",
     success:
       "text-white bg-green-600 hover:bg-green-700 focus:ring-green-500 shadow-sm hover:shadow-md",
+    warning:
+      "text-yellow-700 bg-yellow-100 hover:bg-yellow-200 focus:ring-yellow-500",
   };
 
   const sizeClasses = {

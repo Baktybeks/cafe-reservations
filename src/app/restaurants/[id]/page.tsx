@@ -99,9 +99,11 @@ export default function RestaurantDetailPage() {
 
   const isOpenNow = () => {
     const now = new Date();
-    const currentDay = now.toLocaleDateString("en-US", {
-      weekday: "lowercase",
-    }) as keyof typeof restaurant.workingHours;
+
+    const currentDay = now
+      .toLocaleDateString("en-US", { weekday: "long" })
+      .toLowerCase() as keyof typeof restaurant.workingHours;
+
     const currentTime = now.getHours() * 60 + now.getMinutes();
 
     const todayHours = restaurant.workingHours[currentDay];
